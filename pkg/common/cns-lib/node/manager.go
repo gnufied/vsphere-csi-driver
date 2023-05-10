@@ -132,11 +132,12 @@ func (m *defaultManager) RegisterNode(ctx context.Context, nodeUUID string, node
 	log.Infof("Discovering the node vm using uuid: %q", nodeUUID)
 	err := m.DiscoverNode(ctx, nodeUUID)
 	ctAny, ok := m.discoveryNodeMape.Load(nodeName)
-	counter := ctAny.(int)
+
 	if !ok {
-		counter = 0
+		ctAny = 0
 		m.discoveryNodeMape.Store(nodeName, 0)
 	}
+	counter := ctAny.(int)
 	if err != nil || (counter < 10 && nodeName == "co8-7s6ct-worker-0-ktjk5") {
 		log.Errorf("failed to discover VM with uuid: %q for node: %q", nodeUUID, nodeName)
 		return err
