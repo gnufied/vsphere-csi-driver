@@ -108,6 +108,10 @@ type defaultManager struct {
 	// useNodeUuid uses K8s CSINode API instead of
 	// K8s Node to retrieve the node UUID.
 	useNodeUuid bool
+
+	// just a map for keeping track of node for which requests are being made
+	// TODO: Only used for testing.
+	discoveryNodeMape sync.Map
 }
 
 // SetKubernetesClient sets specified kubernetes client to defaultManager.k8sClient
@@ -127,12 +131,19 @@ func (m *defaultManager) RegisterNode(ctx context.Context, nodeUUID string, node
 	log := logger.GetLogger(ctx)
 	log.Infof("Discovering the node vm using uuid: %q", nodeUUID)
 	err := m.DiscoverNode(ctx, nodeUUID)
-	if err != nil {
+	ctAny, ok := m.discoveryNodeMape.Load(nodeName)
+	counter := ctAny.(int)
+	if !ok {
+		counter = 0
+		m.discoveryNodeMape.Store(nodeName, 0)
+	}
+	if err != nil || (counter < 10 && nodeName == "co8-7s6ct-worker-0-ktjk5") {
 		log.Errorf("failed to discover VM with uuid: %q for node: %q", nodeUUID, nodeName)
 		return err
 	}
 	log.Infof("Successfully discovered node: %q with nodeUUID %q", nodeName, nodeUUID)
 	m.nodeNameToUUID.Store(nodeName, nodeUUID)
+	m.discoveryNodeMape.Store(nodeName, counter+1)
 	log.Infof("Successfully registered node: %q with nodeUUID %q", nodeName, nodeUUID)
 	return nil
 }
